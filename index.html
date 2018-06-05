@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang = "en">
+	<head>
+		<title>Proyecto Final</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+
+				color: #61443e;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				background-color: #bfd1e5;
+				padding: 0;
+				margin: 0;
+				overflow: hidden;
+			}
+
+			#menu {
+				position: absolute;
+				top: 20px;
+				width: 100%;
+				text-align: center;
+				padding: 0;
+				margin: 0;
+			}
+			#materials {
+				position: absolute;
+				bottom: 20px;
+				width: 100%;
+				text-align: center;
+				padding: 0;
+				margin: 0;
+			}
+			button {
+				color: rgb(255,255,255);
+				background: transparent;
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+			button:hover {
+				background-color: rgba(0,255,255,0.5);
+			}
+			button:active {
+				color: #000000;
+				background-color: rgba(0,255,255,1);
+			}
+
+		</style>
+
+	</head>
+	<body>
+	<div id="menu"></div>
+	<div id="materials"></div>
+	<div id="budget"></div>
+
+	<div id="container"><br /><br /><br /><br /><br /></div>
+		<script src="Archivos/three.js"></script>
+    <script src="Archivos/DDSLoader.js"></script>
+    <script src="Archivos/MTLLoader.js"></script>
+    <script src="Archivos/OBJLoader.js"></script>
+		<script src="Archivos/OrbitControls.js"></script>
+		<script src="Archivos/dat.gui.min.js"></script>
+	<script>
+
+
+		// variables globales
+
+		var meshBase;
+		var mesh2, mesh3, mesh4, mesh5, mesh6, mesh7, mesh8, mesh9, mesh10;
+		var container, stats;
+		var camera, controls, scene, renderer;
+		var ambientLight;
+		var mesh;
+		var height = 500;
+		var object;
+		var llantas, alerones, capo;
+
+		var gold = new THREE.TextureLoader().load( 'Materiales/goldTextura.jpg');
+		var goldMaterial = new THREE.MeshPhongMaterial( { map: gold, reflectivty: 0.5} );
+
+		var cromo;
+		cromo = new THREE.TextureLoader().load( 'Materiales/texturaCromo.jpg');
+		var cromoMaterial =  new THREE.MeshPhongMaterial( { map: cromo} );
+
+		var camuflaje = new THREE.TextureLoader().load( 'Materiales/camuflaje.jpg');
+		var camuflajeMaterial = new THREE.MeshPhongMaterial( { map: camuflaje} );
+
+		var metalic = new THREE.TextureLoader().load( 'Materiales/metalic.jpeg');
+		var metalicMaterial = new THREE.MeshPhongMaterial( { map: metalic} );
+
+
+		var aleronesParams = {
+			Aleron1 : false,
+			Aleron2 : false,
+			Aleron3 : false
+		}
+
+		var llantasParams = {
+
+			Llanta1 : false,
+			Llanta2 : false,
+			Llanta3 : false,
+		}
+
+		var capoParams = {
+
+			Capo1 : false,
+			Capo2 : false,
+			Capo3 : false
+		}
+
+		var params3 = {
+			CASH: 2000
+		}
+
+		var PARTS = {
+
+			aleron1 : "partes_carro/alerones/aleron_1.obj",
+			llanta1 : "partes_carro/llantas/llanta_FULL.obj",
+			capo1 : "partes_carro/toma_aire_capo/toma_aire1.obj",
+
+			aleron2 : "partes_carro/alerones/aleron_2.obj",
+			llanta2 :	"partes_carro/llantas/llanta_version2.obj",
+			capo2 : "partes_carro/toma_aire_capo/toma_aire2.obj",
+
+			aleron3 : "partes_carro/alerones/aleron_3.obj",
+			llanta3 :	"partes_carro/llantas/llanta_version3.obj",
+			capo3 : "partes_carro/toma_aire_capo/toma_aire3.obj",
+
+		}
+
+
+
+		// llamado de las funciones principales
+
+		init();
+		animate();
+
+
+		// inicializamos los graficos y el menu grafico
+		function init(){
+
+			initGraphics();
+
+			initGUI();
+
+		}
+
+
+		//inicializamos el menu grafico
+		function initGUI() {
+
+			var gui = new dat.GUI();
+
+			var money = gui.addFolder("Money");
+			money.add(params3, 'CASH');
+
+			var aleronesFolder = gui.addFolder("Alerones");
+			var llantasFolder = gui.addFolder("Llantas");
+			var capoFolder = gui.addFolder("Capo");
+
+			aleron1 = aleronesFolder.add( aleronesParams, 'Aleron1');
+			llanta1 = llantasFolder.add( llantasParams, 'Llanta1');
+			capo1 = capoFolder.add( capoParams, 'Capo1');
+
+			aleron2 = aleronesFolder.add ( aleronesParams, 'Aleron2');
+			llanta2 = llantasFolder.add(llantasParams, 'Llanta2');
+			capo2 = capoFolder.add(capoParams, 'Capo2');
+
+			aleron3 = aleronesFolder.add( aleronesParams, 'Aleron3');
+			capo3 = capoFolder.add(capoParams, 'Capo3');
+
+			aleronesFolder.open();
+			llantasFolder.open();
+			capoFolder.open();
+			money.open();
+
+		}
+
+		// funciones importantes
+
+		function initGraphics() {
+
+			// solicitamos el webgl
+			renderer = new THREE.WebGLRenderer();
+
+			container = document.getElementById( 'container' );
+
+			// creacion (instanciacion) de la camara
+			camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.2, 2000 );
+
+			//creacion de la escena
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xbfd1e5 );
+			scene.fog = new THREE.Fog( 0xE6E6E6, 0, 750 );
+			camera.position.set( 178, 153, 177);
+
+			// ayuda para los axis(x,y,z)
+			// var helper = new THREE.AxisHelper(200);
+			// scene.add(helper);
+
+
+			controls();
+
+
+			render();
+
+			container.innerHTML = "";
+			container.appendChild( renderer.domElement );
+
+
+	    // carro estatico
+
+			OBJModelEstatico( "partes_carro/carro_simple/carro_simple.obj");
+
+
+			//Lights - luces
+
+			// lus de spot
+			spotLight();
+
+			// luz puntual
+			pointLight = pointLight();
+			pointLight.position.set(50,150,10);
+			pointLight.distance = 310;
+
+			//AmbientLight - luz ambiental
+			ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+			ambientLight.position.set(0,10,0);
+			ambientLight.intensity = 0.5;
+			scene.add(ambientLight);
+
+
+
+
+			OBJLoaderPartes( "Alerones");
+			OBJLoaderPartes( "Llantas");
+			OBJLoaderPartes( "Capo");
+
+
+		}
+
+		// igual que el render, se llama cada FPS pero solicitando las transformaciones de los objetos en escena
+		function animate(){
+			requestAnimationFrame(animate);
+
+			render();
+
+
+		}
+
+		// esta funcion se repitecada FPS (frame por segundo)
+		function render() {
+
+
+			if(mesh && mesh3 && mesh4 && mesh5 && mesh6 && mesh7 && mesh8 && mesh9){
+
+
+				if (aleronesParams.Aleron1 == true){
+
+					//aleron1
+					mesh.visible = true;
+
+				}else if (aleronesParams.Aleron2 == true){
+
+					//aleron2
+					mesh8.visible = true;
+
+				} else if (aleronesParams.Aleron3 == true){
+
+					mesh9.visible = true;
+
+				} else if (llantasParams.Llanta1 == true){
+
+					//llanta1
+					mesh3.visible = true;
+					mesh4.visible = true;
+					mesh5.visible = true;
+					mesh6.visible = true;
+
+				}else if (llantasParams.Llanta2 == true){
+
+					mesh10.visible = true;
+					mesh11.visible = true;
+					mesh12.visible = true;
+					mesh13.visible = true;
+
+				}else if (capoParams.Capo1 == true){
+
+					mesh7.visible = true;
+
+
+				}else if(capoParams.Capo2 == true){
+
+					mesh14.visible = true;
+
+				} else if(capoParams.Capo3 == true){
+
+					mesh15.visible = true;
+
+				}else{
+					//aleron1
+					mesh.visible = false;
+					//aleron2
+					mesh8.visible = false;
+					//aleron3
+					mesh9.visible = false;
+
+					//llanta1
+					mesh3.visible = false;
+					mesh4.visible = false;
+					mesh5.visible = false;
+					mesh6.visible = false;
+					//llanta2
+					mesh10.visible = false;
+					mesh11.visible = false;
+					mesh12.visible = false;
+					mesh13.visible = false;
+
+					//capo1
+					mesh7.visible = false;
+					//capo2
+					mesh14.visible = false;
+					//capo3
+					mesh15.visible = false;
+
+				}
+
+				//----------------------------------------------------------------------
+
+
+				//Customizacion
+				var prspto = params3.CASH;
+
+				// Cash
+				if (prspto >= 0){
+
+					//Aleron1
+					if(prspto < 100){
+						aleron1.domElement.hidden = true;
+					}else if (prspto >= 100){
+						aleron1.domElement.hidden = false;
+					}
+
+					//Aleron2
+					if (prspto < 500){
+						aleron3.domElement.hidden = true;
+					}else if (prspto >= 500 ){
+						aleron3.domElement.hidden = false;
+					}
+
+					//Aleron3
+					if (prspto < 200){
+						aleron2.domElement.hidden = true;
+					}else if (prspto >= 200 ){
+						aleron2.domElement.hidden = false;
+					}
+
+					//LLanta1
+					if (prspto < 50 ){
+						llanta1.domElement.hidden = true;
+					}else if (prspto >= 50){
+						llanta1.domElement.hidden = false;
+					}
+
+					//LLanta2
+					if (prspto < 800 ){
+						llanta2.domElement.hidden = true;
+					}else if (prspto >= 800){
+						llanta2.domElement.hidden = false;
+					}
+
+					//capo1
+					if (prspto < 300){
+						capo1.domElement.hidden = true;
+					}else if (prspto >= 300 ){
+						capo1.domElement.hidden = false;
+					}
+
+					//capo2
+					if (prspto < 400){
+						capo2.domElement.hidden = true;
+					}else if (prspto >= 400 ){
+						capo2.domElement.hidden = false;
+					}
+
+					//capo3
+					if (prspto < 30){
+						capo3.domElement.hidden = true;
+					}else if (prspto >= 30 ){
+						capo3.domElement.hidden = false;
+					}
+
+				}
+
+			}
+
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.shadowMap.enabled = true;
+
+			renderer.render(scene, camera);
+
+		}
+
+		// auto resize
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		// controles
+		function controls() {
+			controls = new THREE.OrbitControls( camera , renderer.domElement);
+			controls.target.set( 0, 2, 0 );
+			controls.enableZoom = true;
+			controls.update();
+
+		}
+
+
+		// funciones para cargar los modelos
+
+		function OBJLoaderPartes(name) {
+
+			if (name == "Alerones"){
+
+				// aleron 1
+				var objLoader = new THREE.OBJLoader();
+				objLoader.load(PARTS.aleron1, function(group){
+
+					var geometry = group.children[ 0 ].geometry;
+					geometry.attributes.uv2 = geometry.attributes.uv;
+
+					var flamas = new THREE.TextureLoader().load( 'Materiales/simetrica.jpg');
+					var flamasMaterial = new THREE.MeshPhongMaterial( { map: flamas} );
+
+					mesh = new THREE.Mesh( geometry , flamasMaterial);
+
+					mesh.scale.multiplyScalar( 0.5 );
+					mesh.position.set(-42, 50.5, -50);
+					mesh.rotation.y = Math.PI/-1.2;
+					//root.add( mesh );
+					scene.add( mesh );
+
+				});
+
+
+				//aleron2
+				var objLoader8 = new THREE.OBJLoader();
+				objLoader8.load(PARTS.aleron2, function(group8){
+
+					var geometry8 = group8.children[ 0 ].geometry;
+					geometry8.attributes.uv2 = geometry8.attributes.uv;
+
+					var gold = new THREE.TextureLoader().load( 'Materiales/goldTextura.jpg');
+					var goldMaterial = new THREE.MeshPhongMaterial( { map: gold} );
+
+					mesh8 = new THREE.Mesh( geometry8, goldMaterial );
+
+					mesh8.scale.multiplyScalar( 0.5 );
+					mesh8.position.set(-36.5, -0.5, 10);
+					mesh8.rotation.y = Math.PI/-1.0;
+					//root.add( mesh );
+					scene.add( mesh8 );
+
+				});
+
+				//aleron3
+				var objLoader9 = new THREE.OBJLoader();
+				objLoader9.load(PARTS.aleron3, function(group9){
+
+					var geometry9 = group9.children[ 0 ].geometry;
+					geometry9.attributes.uv2 = geometry9.attributes.uv;
+
+
+
+					mesh9 = new THREE.Mesh( geometry9 , camuflajeMaterial);
+
+					mesh9.scale.multiplyScalar( 0.5 );
+					mesh9.position.set(-36.5, -0.5, 10);
+					mesh9.rotation.y = Math.PI/-1.0;
+					//root.add( mesh );
+					scene.add( mesh9 );
+
+				});
+
+
+			}else if (name == "Llantas"){
+
+				// llanta1
+				var objLoader3 = new THREE.OBJLoader();
+				objLoader3.load(PARTS.llanta1, function(group3){
+
+					var geometry3 = group3.children[ 0 ].geometry;
+					geometry3.attributes.uv2 = geometry3.attributes.uv;
+
+
+
+					mesh3 = new THREE.Mesh( geometry3, cromoMaterial );
+
+					mesh3.scale.multiplyScalar( 0.06 );
+					mesh3.position.set(25, 27, -39);
+					//mesh3.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh3 );
+
+				});
+
+				var objLoader4 = new THREE.OBJLoader();
+				objLoader4.load(PARTS.llanta1, function(group4){
+
+					var geometry4 = group4.children[ 0 ].geometry;
+					geometry4.attributes.uv2 = geometry4.attributes.uv;
+
+
+					mesh4 = new THREE.Mesh( geometry4, cromoMaterial );
+
+					mesh4.scale.multiplyScalar( 0.06 );
+					mesh4.position.set(28,27, 25);
+					//mesh3.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh4 );
+
+				});
+
+				var objLoader5 = new THREE.OBJLoader();
+				objLoader5.load(PARTS.llanta1, function(group5){
+
+					var geometry5 = group5.children[ 0 ].geometry;
+					geometry5.attributes.uv2 = geometry5.attributes.uv;
+
+
+					mesh5 = new THREE.Mesh( geometry5, cromoMaterial );
+
+					mesh5.scale.multiplyScalar( 0.06 );
+					mesh5.position.set(-34,27, 45);
+					mesh5.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh5 );
+
+				});
+
+				var objLoader6 = new THREE.OBJLoader();
+				objLoader6.load(PARTS.llanta1, function(group6){
+
+					var geometry6 = group6.children[ 0 ].geometry;
+					geometry6.attributes.uv2 = geometry6.attributes.uv;
+
+
+					mesh6 = new THREE.Mesh( geometry6, cromoMaterial );
+
+					mesh6.scale.multiplyScalar( 0.06 );
+					mesh6.position.set(-37,27, -18);
+					mesh6.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh6 );
+
+				});
+
+				// ----------------------------------------------------
+
+				var objLoader10 = new THREE.OBJLoader();
+				objLoader10.load(PARTS.llanta1, function(group10){
+
+					var geometry10 = group10.children[ 0 ].geometry;
+					geometry10.attributes.uv2 = geometry10.attributes.uv;
+
+
+					mesh10 = new THREE.Mesh( geometry10, goldMaterial);
+
+					mesh10.scale.multiplyScalar( 0.06 );
+					mesh10.position.set(25, 27, -39);
+					//mesh3.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh10 );
+
+				});
+
+				var objLoader11 = new THREE.OBJLoader();
+				objLoader11.load(PARTS.llanta1, function(group11){
+
+					var geometry11 = group11.children[ 0 ].geometry;
+					geometry11.attributes.uv2 = geometry11.attributes.uv;
+
+
+					mesh11 = new THREE.Mesh( geometry11, goldMaterial );
+
+					mesh11.scale.multiplyScalar( 0.06 );
+					mesh11.position.set(28,27, 25);
+					//mesh3.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh11 );
+
+				});
+
+				var objLoader12 = new THREE.OBJLoader();
+				objLoader12.load(PARTS.llanta1, function(group12){
+
+					var geometry12 = group12.children[ 0 ].geometry;
+					geometry12.attributes.uv2 = geometry12.attributes.uv;
+
+
+					mesh12 = new THREE.Mesh( geometry12, goldMaterial );
+
+					mesh12.scale.multiplyScalar( 0.06 );
+					mesh12.position.set(-34,27, 45);
+					mesh12.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh12 );
+
+				});
+
+				var objLoader13 = new THREE.OBJLoader();
+				objLoader13.load(PARTS.llanta1, function(group13){
+
+					var geometry13 = group13.children[ 0 ].geometry;
+					geometry13.attributes.uv2 = geometry13.attributes.uv;
+
+
+					mesh13 = new THREE.Mesh( geometry13, goldMaterial );
+
+					mesh13.scale.multiplyScalar( 0.06 );
+					mesh13.position.set(-37,27, -18);
+					mesh13.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh13 );
+
+				});
+
+
+
+
+
+			}else if (name == "Capo"){
+
+				var objLoader7 = new THREE.OBJLoader();
+				objLoader7.load(PARTS.capo1, function(group7){
+
+					var geometry7 = group7.children[ 0 ].geometry;
+					geometry7.attributes.uv2 = geometry7.attributes.uv;
+
+
+					mesh7 = new THREE.Mesh( geometry7, camuflajeMaterial );
+
+					mesh7.scale.multiplyScalar( 0.5 );
+					mesh7.position.set(0,-1, 100);
+					mesh7.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh7 );
+
+				});
+
+				var objLoader14 = new THREE.OBJLoader();
+				objLoader14.load(PARTS.capo2, function(group14){
+
+					var geometry14 = group14.children[ 0 ].geometry;
+					geometry14.attributes.uv2 = geometry14.attributes.uv;
+
+
+					mesh14 = new THREE.Mesh( geometry14 , goldMaterial);
+
+					mesh14.scale.multiplyScalar( 0.5 );
+					mesh14.position.set(0,-1, 100);
+					mesh14.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh14 );
+
+				});
+
+				var objLoader15 = new THREE.OBJLoader();
+				objLoader14.load(PARTS.capo3, function(group15){
+
+					var geometry15 = group15.children[ 0 ].geometry;
+					geometry15.attributes.uv2 = geometry15.attributes.uv;
+
+
+					mesh15 = new THREE.Mesh( geometry15, cromoMaterial );
+
+					mesh15.scale.multiplyScalar( 0.5 );
+					mesh15.position.set(0,-1, 100);
+					mesh15.rotation.y = Math.PI/Math.PI*-3.0;
+					//root.add( mesh );
+					scene.add( mesh15 );
+
+				});
+
+			}else{
+				console.log('No hay modelos');
+			}
+
+		}
+
+		function OBJModelEstatico(modelObj){
+
+			var objLoader = new THREE.OBJLoader();
+
+			objLoader.load(modelObj, function(meshBase){
+
+				meshBase.traverse(function(node){
+  				if( node instanceof THREE.Mesh ){
+  					node.castShadow = true;
+  					node.receiveShadow = true;
+            node.material = new THREE.MeshPhongMaterial( { map: metalic, reflectivty: 2} );
+  				}
+  			});
+
+
+				meshBase.position.set(0, 0, 0);
+				//meshBase.rotation.y = Math.PI;
+				meshBase.scale.set(0.5, 0.5, 0.5);
+				scene.add( meshBase );
+
+			});
+
+		}
+
+		function spotLight() {
+
+			var spotLight;
+	    spotLight = new THREE.SpotLight(0xffffff);
+	    spotLight.castShadow = true;
+	    spotLight.position.set(133,177,216);
+	    spotLight.angle = 0.18;
+	    spotLight.distance = 320;
+	    spotLight.intensity = 1.9;
+
+	    scene.add(spotLight);
+
+		}
+
+		function pointLight(x, y, z, color, intensity, distance) {
+
+			light = new THREE.PointLight(color, intensity, distance);
+	  	light.castShadow = true;
+	  	light.receiveShadow = true;
+	  	scene.add(light);
+
+
+	    return light;
+
+		}
+
+
+
+		//-----------------------------------------------------------------------\\
+	</script>
+
+
+	</body>
+</html>
